@@ -1,5 +1,10 @@
 import { serve } from "bun";
 
+interface ISignupRequest {
+    email: string;
+    password: string;
+}
+
 console.log("Bun API Server Starting...");
 serve({
     port: 4000,
@@ -8,7 +13,7 @@ serve({
             return new Response("OK");
         },
         "/api/v1/signup": async (req, res) => {
-            const { email, password } = await req.json();
+            const { email, password } = await req.json() as ISignupRequest;
             
             /**
              * Email and password are required
