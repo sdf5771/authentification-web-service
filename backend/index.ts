@@ -2,11 +2,6 @@ import { serve } from "bun";
 import chalk from "chalk";
 
 
-interface ISignupRequest {
-    email: string;
-    password: string;
-}
-
 const BACKEND_API_SERVER_LOG_NAME = chalk.blue("[Bun API Server]:");
 
 console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Try Serving API Server..."));
@@ -19,6 +14,11 @@ serve({
             return new Response("OK");
         },
         "/api/v1/signup": async (req, res) => {
+            interface ISignupRequest {
+                email: string;
+                password: string;
+            }
+            
             const { email, password } = await req.json() as ISignupRequest;
             
             /**
