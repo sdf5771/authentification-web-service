@@ -1,7 +1,13 @@
 import { User, type IUser } from "../models";
 import { hashPassword, comparePassword } from "../utils/password.util";
 
-export const createUser = async (user: IUser) => {
+export const createUser = async (user: {
+        email: string;
+        password: string;
+        name: string;
+        roles?: string[];
+        isEmailVerified?: boolean;
+    }) => {
     try {
         const hashedPassword = await hashPassword(user.password);
         const newUser = new User({
@@ -14,7 +20,7 @@ export const createUser = async (user: IUser) => {
             isEmailVerified: false,
             verificationToken: null,
             verificationTokenExpires: null,
-            roles: user.roles,
+            roles: user.roles || ["user"],
         });
 
         const result = await newUser.save();

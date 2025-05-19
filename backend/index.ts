@@ -1,6 +1,7 @@
 import { serve } from "bun";
 import chalk from "chalk";
-
+import { findUserByEmail, createUser } from "./services/user.service";
+import { hashPassword } from "./utils/password.util";
 
 const BACKEND_API_SERVER_LOG_NAME = chalk.blue("[Bun API Server]:");
 
@@ -17,9 +18,10 @@ serve({
             interface ISignupRequest {
                 email: string;
                 password: string;
+                name: string;
             }
-            
-            const { email, password } = await req.json() as ISignupRequest;
+
+            const { email, password, name } = await req.json() as ISignupRequest;
             
             /**
              * Email and password are required
@@ -85,7 +87,35 @@ serve({
              * 3. Create user
              * 4. Return user
              */
-            console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Signup successful"));
+
+            const user = await findUserByEmail(email);
+
+            if(user) {
+                const responseBody = JSON.stringify({
+                    error: "User already exists"
+                });
+                const responseInit = {
+                    status: 400,
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                };
+
+                console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Signup failed: User already exists"));
+
+                return new Response(responseBody, responseInit);
+            }
+
+            const hashedPassword = await hashPassword(password);
+
+            const newUser = await createUser({
+                email,
+                password: hashedPassword,
+                name,
+            });
+
+
+            console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Signup successful"), newUser);
             return new Response(JSON.stringify({
                 message: "User created successfully"
             }), {
