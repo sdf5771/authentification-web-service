@@ -7,6 +7,7 @@ export const MONGO_URI = process.env.MONGO_URI || `mongodb://${MONGO_USER}:${MON
 export const JWT_SECRET = process.env.JWT_SECRET || "examplekey";
 export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1h";
 export const JWT_REFRESH_TOKEN_EXPIRES_IN = process.env.JWT_REFRESH_TOKEN_EXPIRES_IN || "7d";
+export const JWT_ALGORITHM = process.env.JWT_ALGORITHM || "HS256";
 export const REDIS_HOST = process.env.REDIS_HOST || "localhost";
 export const REDIS_PORT = process.env.REDIS_PORT || 6379;
 export const REDIS_PASSWORD = process.env.REDIS_PASSWORD || null;
