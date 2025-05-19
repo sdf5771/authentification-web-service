@@ -1,0 +1,16 @@
+export const MONGO_DB_NAME = process.env.MONGO_DB_NAME || "auth-api";
+export const MONGO_USER = process.env.MONGO_USER || "admin";
+export const MONGO_PASSWORD = process.env.MONGO_PASSWORD || "password";
+export const MONGO_HOST = process.env.MONGO_HOST || "localhost";
+export const MONGO_PORT = process.env.MONGO_PORT || 27017;
+export const MONGO_URI = process.env.MONGO_URI || `mongodb://${MONGO_USER}:${MONGO_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB_NAME}`;
+export const JWT_SECRET = process.env.JWT_SECRET || "examplekey";
+export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1h";
+export const JWT_REFRESH_TOKEN_EXPIRES_IN = process.env.JWT_REFRESH_TOKEN_EXPIRES_IN || "7d";
+export const REDIS_HOST = process.env.REDIS_HOST || "localhost";
+export const REDIS_PORT = process.env.REDIS_PORT || 6379;
+export const REDIS_PASSWORD = process.env.REDIS_PASSWORD || null;
+export const REDIS_DB = process.env.REDIS_DB || 0;
+export const REDIS_TTL = process.env.REDIS_TTL || 60 * 60 * 24; // 1 day
+export const REDIS_PREFIX = process.env.REDIS_PREFIX || "auth:";
+export const REDIS_URI = process.env.REDIS_URL || `redis://${REDIS_HOST}:${REDIS_PORT}`;

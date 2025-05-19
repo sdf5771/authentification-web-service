@@ -7,12 +7,18 @@
     "dev": "bun run --watch index.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bcryptjs": "^3.0.0",
+    "@types/bun": "latest",
+    "@types/jsonwebtoken": "^9.0.9"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "chalk": "^5.4.1"
+    "bcryptjs": "^3.0.2",
+    "chalk": "^5.4.1",
+    "ioredis": "^5.6.1",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.15.0"
   }
 }
