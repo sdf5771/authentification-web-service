@@ -2,10 +2,11 @@ import { serve } from "bun";
 import chalk from "chalk";
 import { JWT_EXPIRES_IN, JWT_REFRESH_TOKEN_EXPIRES_IN } from "./config";
 import { connectDB } from "./db";
-import { findUserByEmail, createUser, updateLastLogin, updateUserRefreshToken } from "./services/user.service";
+import { findUserByEmail, createUser, updateLastLogin, updateUserRefreshToken, updateUserRedisSession } from "./services/user.service";
 import { hashPassword, comparePassword } from "./utils/password.util";
 import { generateAccessToken, generateRefreshToken } from "./services/jwt.service";
-
+import { generateSessionId, saveSession, getSession, deleteSession } from "./services/redis.service";
+import { addTimeToMilliseconds } from "./utils/date.util";
 const BACKEND_API_SERVER_LOG_NAME = chalk.blue("[Bun API Server]:");
 
 console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Try Serving API Server..."));
@@ -246,6 +247,33 @@ const startServer = async () => {
                             console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Signin failed: Failed to update last login"));
                         }
                     }
+
+                    /**
+                     * Generate session id
+                     */
+
+                    const sessionId = generateSessionId();
+
+                    /**
+                     * Save session
+                     */
+                    await saveSession(sessionId, user.email, addTimeToMilliseconds(JWT_REFRESH_TOKEN_EXPIRES_IN));
+                    const newSession = await getSession(sessionId);
+                    if(!newSession) {
+                        console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Signin failed: Failed to save session"));
+                    } else {
+                        console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Signin successful: Session saved"));
+
+                        /**
+                         * Update user redisSession
+                         */
+                        try {
+                            await updateUserRedisSession(user.email, sessionId);
+                        } catch (error) {
+                            console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Signin failed: Failed to update user redis session"));
+                        }
+                    }
+
         
                     /**
                      * Return response

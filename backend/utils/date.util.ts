@@ -37,3 +37,8 @@ export const addTimeToDate = (date: Date, timeString: string): Date => {
   const timeInMs = parseTimeString(timeString);
   return new Date(date.getTime() + timeInMs);
 }; 
+
+export const addTimeToMilliseconds = (timeString: string): number => {
+  const timeInMs = parseTimeString(timeString);
+  return timeInMs
+};

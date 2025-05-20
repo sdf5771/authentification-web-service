@@ -58,3 +58,14 @@ export const updateUserRefreshToken = async (email: string, refreshToken: string
         throw new Error("Failed to update user refresh token");
     }
 };
+
+export const updateUserRedisSession = async (email: string, sessionId: string) => {
+    try {
+        return await User.findOneAndUpdate(
+            { email },
+            { redisSession: { id: sessionId, expiresAt: addTimeToDate(new Date(), JWT_REFRESH_TOKEN_EXPIRES_IN) } }
+        );
+    } catch (error) {
+        throw new Error("Failed to update user redis session");
+    }
+}

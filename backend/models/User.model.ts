@@ -12,6 +12,10 @@ export interface IUser extends Document {
     isEmailVerified: boolean;
     verificationToken?: string;
     verificationTokenExpires?: Date;
+    redisSession?: {
+        id: string;
+        expiresAt: Date;
+    };
 }
 
 const UserSchema: Schema<IUser> = new Schema({
@@ -67,6 +71,17 @@ const UserSchema: Schema<IUser> = new Schema({
     verificationTokenExpires: {
         type: Date,
     },
+    redisSession: {
+        id: {
+            type: String,
+            required: false,
+            maxlength: 100,
+        },
+        expiresAt: {
+            type: Date,
+            required: false,
+        },
+    }
 }, { timestamps: true });
 
 const User = mongoose.model<IUser>("User", UserSchema);

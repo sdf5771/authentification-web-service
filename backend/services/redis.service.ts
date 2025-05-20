@@ -1,5 +1,10 @@
 import Redis from "ioredis";
 import { REDIS_URI } from "../config";
+import crypto from 'crypto';
+
+export const generateSessionId = (): string => {
+  return crypto.randomUUID();
+};
 
 const redis = new Redis(REDIS_URI);
 
