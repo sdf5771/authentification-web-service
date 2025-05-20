@@ -1,5 +1,5 @@
-import { User, type IUser } from "../models";
-import { hashPassword, comparePassword } from "../utils/password.util";
+import { User } from "../models";
+import { hashPassword } from "../utils/password.util";
 import { JWT_REFRESH_TOKEN_EXPIRES_IN } from "../config";
 import { addTimeToDate } from "../utils/date.util";
 
