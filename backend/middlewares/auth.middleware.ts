@@ -28,14 +28,14 @@ function authMiddleware(req: Request) {
 
     const validationTokenResult = verifyAccessToken(accessToken);
     
-    if(!validationTokenResult.isValid) {
-        resultInit.responseBody.message = "Unauthorized";
+    if(validationTokenResult.error && validationTokenResult.error.message === "jwt expired") {
+        resultInit.responseBody.message = "Token expired";
         resultInit.responseBody.status = 401;
         return resultInit;
     }
 
-    if(validationTokenResult.isExpired) {
-        resultInit.responseBody.message = "Token expired";
+    if(!validationTokenResult.isValid) {
+        resultInit.responseBody.message = "Unauthorized";
         resultInit.responseBody.status = 401;
         return resultInit;
     }
