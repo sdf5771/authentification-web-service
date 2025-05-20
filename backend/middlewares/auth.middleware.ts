@@ -34,6 +34,12 @@ function authMiddleware(req: Request) {
         return resultInit;
     }
 
+    if(validationTokenResult.isExpired) {
+        resultInit.responseBody.message = "Token expired";
+        resultInit.responseBody.status = 401;
+        return resultInit;
+    }
+
     resultInit.isSuccess = true;
     resultInit.responseBody.message = "Authorized";
     resultInit.responseBody.status = 200;
