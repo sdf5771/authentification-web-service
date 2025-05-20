@@ -42,3 +42,8 @@ export const addTimeToMilliseconds = (timeString: string): number => {
   const timeInMs = parseTimeString(timeString);
   return timeInMs
 };
+
+export const addTimeToSeconds = (timeString: string): number => {
+  const timeInMs = parseTimeString(timeString);
+  return timeInMs / 1000;
+};

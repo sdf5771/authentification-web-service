@@ -2,11 +2,13 @@ import { serve } from "bun";
 import chalk from "chalk";
 import { JWT_EXPIRES_IN, JWT_REFRESH_TOKEN_EXPIRES_IN } from "./config";
 import { connectDB } from "./db";
-import { findUserByEmail, createUser, updateLastLogin, updateUserRefreshToken, updateUserRedisSession } from "./services/user.service";
+import { findUserByEmail, createUser, updateLastLogin, updateUserRefreshToken, updateUserRedisSession, findUserByRefreshToken} from "./services/user.service";
 import { hashPassword, comparePassword } from "./utils/password.util";
 import { generateAccessToken, generateRefreshToken } from "./services/jwt.service";
-import { generateSessionId, saveSession, getSession, deleteSession } from "./services/redis.service";
-import { addTimeToMilliseconds } from "./utils/date.util";
+import { generateSessionId, saveSession, getSession, deleteSession, type ISessionData } from "./services/redis.service";
+import { addTimeToDate, addTimeToMilliseconds, addTimeToSeconds } from "./utils/date.util";
+import authMiddleware from "./middlewares/auth.middleware";
+
 const BACKEND_API_SERVER_LOG_NAME = chalk.blue("[Bun API Server]:");
 
 console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Try Serving API Server..."));
@@ -20,7 +22,12 @@ const startServer = async () => {
             routes: {
                 "/api/v1/healthcheck": (req, res) => {
                     console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Healthcheck passed"));
-                    return new Response("OK");
+                    const authResult = authMiddleware(req);
+                    if(authResult.isSuccess) {
+                        return new Response("OK", { status: 200 });
+                    } else {
+                        return new Response(authResult.responseBody.message, { status: authResult.responseBody.status });
+                    }
                 },
                 "/api/v1/signup": async (req, res) => {
                     if(req.method !== "POST") {
@@ -46,7 +53,7 @@ const startServer = async () => {
                     }
         
                     const { email, password, name } = await req.json() as ISignupRequest;
-                    
+
                     /**
                      * Email and password are required
                      */
@@ -141,6 +148,7 @@ const startServer = async () => {
                     });
                 },
                 "/api/v1/signin": async (req, res) => {
+                    console.time("Signin Logic Time");
                     interface ISigninRequest {
                         email: string;
                         password: string;
@@ -257,7 +265,16 @@ const startServer = async () => {
                     /**
                      * Save session
                      */
-                    await saveSession(sessionId, user.email, addTimeToMilliseconds(JWT_REFRESH_TOKEN_EXPIRES_IN));
+
+                    const sessionData: ISessionData = {
+                        sessionId,
+                        email: user.email,
+                        name: user.name,
+                        roles: user.roles,
+                        accessToken,
+                        accessTokenExpiresAt: addTimeToDate(new Date(), JWT_EXPIRES_IN),
+                    }
+                    await saveSession(sessionId, sessionData, addTimeToSeconds(JWT_EXPIRES_IN));
                     const newSession = await getSession(sessionId);
                     if(!newSession) {
                         console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Signin failed: Failed to save session"));
@@ -279,7 +296,7 @@ const startServer = async () => {
                      * Return response
                      */
                     console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Signin successful"));
-        
+                    console.timeEnd("Signin Logic Time");
                     return new Response(JSON.stringify({
                         message: "Signin successful",
                         user,
@@ -289,6 +306,107 @@ const startServer = async () => {
                         headers: {
                             "Content-Type": "application/json",
                             "Set-Cookie": refreshTokenCookie
+                        }
+                    });
+                },
+                "/api/v1/refresh-token": async (req, res) => {
+                    if(req.method !== "POST") {
+                        const responseBody = JSON.stringify({
+                            error: "Method not allowed"
+                        });
+                        const responseInit = {
+                            status: 405,
+                            headers: {
+                                "Content-Type": "application/json"
+                            }
+                        };
+                        
+                        console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Refresh token failed: Method not allowed"));
+
+                        return new Response(responseBody, responseInit);
+                    }
+
+                    const refreshToken = req.cookies.get("refreshToken");
+
+                    if(!refreshToken) {
+                        const responseBody = JSON.stringify({
+                            error: "Refresh token not found"
+                        });
+
+                        const responseInit = {
+                            status: 400,
+                            headers: {
+                                "Content-Type": "application/json"
+                            }
+                        };
+                        return new Response(responseBody, responseInit);
+                    }
+                    
+                    const user = await findUserByRefreshToken(refreshToken);
+
+                    if(!user) {
+                        const responseBody = JSON.stringify({
+                            error: "User not found"
+                        });
+                        const responseInit = {
+                            status: 400,
+                            headers: {
+                                "Content-Type": "application/json"
+                            }
+                        };
+                        return new Response(responseBody, responseInit);
+                    }
+
+                    /**
+                     * Generate AccessToken
+                     */
+                    const accessToken = generateAccessToken({
+                        email: user.email,
+                        name: user.name,
+                        roles: user.roles,
+                    });
+
+                    /**
+                     * Check if session is alived and delete before session
+                     */
+                    const sessionId = user.redisSession?.id;
+                    let isAlivedSession = false;
+                    if(sessionId) {
+                        const session = await getSession(sessionId);
+                        if(!session) {
+                            isAlivedSession = false;
+                        } else {
+                            isAlivedSession = true;
+                        }
+                    } 
+
+                    /**
+                     * Save Session
+                     */
+                    const newSessionId = generateSessionId();
+                    
+                    if(isAlivedSession) {
+                        const sessionData: ISessionData = {
+                            sessionId: newSessionId,
+                            email: user.email,
+                            name: user.name,
+                            roles: user.roles,
+                            accessToken,
+                            accessTokenExpiresAt: addTimeToDate(new Date(), JWT_EXPIRES_IN),
+                        }
+                        await saveSession(newSessionId, sessionData, addTimeToSeconds(JWT_EXPIRES_IN));
+                    }
+
+                    
+
+                    return new Response(JSON.stringify({
+                        message: "Refresh token successful",
+                        accessToken,
+                        user,
+                    }), {
+                        status: 200,
+                        headers: {
+                            "Content-Type": "application/json"
                         }
                     });
                 },

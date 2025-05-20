@@ -69,3 +69,7 @@ export const updateUserRedisSession = async (email: string, sessionId: string) =
         throw new Error("Failed to update user redis session");
     }
 }
+
+export const findUserByRefreshToken = async (refreshToken: string) => {
+    return await User.findOne({ "verificationToken": refreshToken });
+}

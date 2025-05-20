@@ -30,21 +30,39 @@ export const generateRefreshToken = (payload: IGenerateToken) => {
 };
 
 export const verifyAccessToken = (token: string) => {
-    return jwt.verify(
-        token, 
-        JWT_SECRET as string, 
-        { 
-            algorithms: [JWT_ALGORITHM as jwt.Algorithm] 
-        }
-    );
+    try {
+        const result = jwt.verify(
+            token, 
+            JWT_SECRET as string, 
+            { algorithms: [JWT_ALGORITHM as jwt.Algorithm] }
+        );
+        return {
+            isValid: true,
+            result: result,
+        };
+    } catch (error) {
+        return {
+            isValid: false,
+            error: error,
+        };
+    }
 };
 
 export const verifyRefreshToken = (token: string) => {
-    return jwt.verify(
-        token, 
-        JWT_SECRET as string, 
-        { algorithms: [JWT_ALGORITHM as jwt.Algorithm] 
-
-        }
-    );
+    try {
+        const result = jwt.verify(
+            token, 
+            JWT_SECRET as string, 
+            { algorithms: [JWT_ALGORITHM as jwt.Algorithm] }
+        );
+        return {
+            isValid: true,
+            result: result,
+        };
+    } catch (error) {
+        return {
+            isValid: false,
+            error: error,
+        };
+    }
 };
