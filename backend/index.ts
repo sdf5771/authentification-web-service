@@ -7,7 +7,7 @@ import { hashPassword, comparePassword } from "./utils/password.util";
 import { generateAccessToken, generateRefreshToken } from "./services/jwt.service";
 import { generateSessionId, saveSession, getSession, deleteSession, type ISessionData } from "./services/redis.service";
 import { addTimeToDate, addTimeToMilliseconds, addTimeToSeconds } from "./utils/date.util";
-import authMiddleware from "./middlewares/auth.middleware";
+import validateAccessToken from "./middlewares/validateAccessToken.middleware";
 
 const BACKEND_API_SERVER_LOG_NAME = chalk.blue("[Bun API Server]:");
 
@@ -22,7 +22,7 @@ const startServer = async () => {
             routes: {
                 "/api/v1/healthcheck": (req, res) => {
                     console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Healthcheck passed"));
-                    const authResult = authMiddleware(req);
+                    const authResult = validateAccessToken(req);
                     if(authResult.isSuccess) {
                         return new Response("OK", { status: 200 });
                     } else {

@@ -9,7 +9,7 @@ interface IAuthResult {
         data: null | JwtPayload;
     }
 }
-function authMiddleware(req: Request) {
+function validateAccessToken(req: Request) {
     const accessToken = req.headers.get("Authorization")?.split(" ")[1];
     const resultInit: IAuthResult = {
         isSuccess: false,
@@ -47,4 +47,4 @@ function authMiddleware(req: Request) {
     return resultInit;
 }
 
-export default authMiddleware;
+export default validateAccessToken;
