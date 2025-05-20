@@ -1,5 +1,7 @@
 import { User, type IUser } from "../models";
 import { hashPassword, comparePassword } from "../utils/password.util";
+import { JWT_REFRESH_TOKEN_EXPIRES_IN } from "../config";
+import { addTimeToDate } from "../utils/date.util";
 
 export const createUser = async (user: {
         email: string;
@@ -32,17 +34,27 @@ export const createUser = async (user: {
 };
 
 export const findUserByEmail = async (email: string) => {
-    try {
-        return await User.findOne({ email });
-    } catch (error) {
-        throw new Error("Failed to find user by email");
-    }
+    return await User.findOne({ email });
 };
 
 export const updateLastLogin = async (email: string) => {
     try {
-        return await User.findOneAndUpdate({ email }, { lastLogin: new Date() }, { new: true });
+        return await User.findOneAndUpdate({ email }, { lastLogin: new Date() });
     } catch (error) {
         throw new Error("Failed to update last login");
+    }
+};
+
+export const updateUserRefreshToken = async (email: string, refreshToken: string) => {
+    try {
+        return await User.findOneAndUpdate(
+            { email }, 
+            { 
+                verificationToken: refreshToken, 
+                verificationTokenExpires: addTimeToDate(new Date(), JWT_REFRESH_TOKEN_EXPIRES_IN) 
+            }
+        );
+    } catch (error) {
+        throw new Error("Failed to update user refresh token");
     }
 };
