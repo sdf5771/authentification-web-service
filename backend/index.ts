@@ -8,7 +8,7 @@ import { generateAccessToken, generateRefreshToken } from "./services/jwt.servic
 import { generateSessionId, saveSession, getSession, deleteSession, type ISessionData } from "./services/redis.service";
 import { addTimeToDate, addTimeToMilliseconds, addTimeToSeconds } from "./utils/date.util";
 import validateAccessToken from "./middlewares/validateAccessToken.middleware";
-
+import validateRefreshToken from "./middlewares/validateRefreshToken.middleware";
 const BACKEND_API_SERVER_LOG_NAME = chalk.blue("[Bun API Server]:");
 
 console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Try Serving API Server..."));
@@ -358,6 +358,15 @@ const startServer = async () => {
                     }
 
                     /**
+                     * Validate refresh token
+                     */
+                    const refreshTokenValidationResult = validateRefreshToken(req);
+
+                    if(!refreshTokenValidationResult.isSuccess) {
+                        return new Response(refreshTokenValidationResult.responseBody.message, { status: refreshTokenValidationResult.responseBody.status });
+                    }
+
+                    /**
                      * Generate AccessToken
                      */
                     const accessToken = generateAccessToken({
@@ -385,7 +394,17 @@ const startServer = async () => {
                      */
                     const newSessionId = generateSessionId();
                     
-                    if(isAlivedSession) {
+                    /**
+                     * Delete session if it is alived
+                     */
+                    if(isAlivedSession && sessionId) {
+                        await deleteSession(sessionId);
+                    }
+
+                    /**
+                     * Save new session
+                     */
+                    try {
                         const sessionData: ISessionData = {
                             sessionId: newSessionId,
                             email: user.email,
@@ -395,10 +414,19 @@ const startServer = async () => {
                             accessTokenExpiresAt: addTimeToDate(new Date(), JWT_EXPIRES_IN),
                         }
                         await saveSession(newSessionId, sessionData, addTimeToSeconds(JWT_EXPIRES_IN));
+                        console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Refresh token successful: Session saved"));
+                    } catch (error) {
+                        console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Refresh token failed: Failed to save session"));
+                        return new Response(JSON.stringify({
+                            error: "Failed to save session"
+                        }), {
+                            status: 500,
+                            headers: {
+                                "Content-Type": "application/json"
+                            }
+                        });
                     }
-
                     
-
                     return new Response(JSON.stringify({
                         message: "Refresh token successful",
                         accessToken,
