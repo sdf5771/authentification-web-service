@@ -28,14 +28,6 @@ const startServer = async () => {
 
         serve({
             port: 4000,
-            // fetch(req) {
-            //     const res = new Response();
-            //     res.headers.set('Access-Control-Allow-Origin', '*');
-            //     res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-            //     res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-            //     res.headers.set('Access-Control-Allow-Credentials', 'true');
-            //     return res;
-            // },
             routes: {
                 "/api/v1/healthcheck": (req, res) => {
                     if(req.method === "OPTIONS") {
