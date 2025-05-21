@@ -18,7 +18,7 @@ function Home() {
         });
         if(response.status === 200) {
             const data = await response.json();
-            console.log('data: ', data);
+            console.log('[fetchingRefreshToken] data: ', data);
             setUser({
                 email: data.user.email,
                 name: data.user.name,
@@ -38,8 +38,7 @@ function Home() {
                 Authorization: `Bearer ${accessToken}`,
             },
         });
-        const data = await response.json();
-        console.log('data: ', data);
+        console.log('[fetchingHealthcheck] response: ', response);
         if(response.status !== 200) {
             await fetchingRefreshToken();
         }
@@ -62,7 +61,6 @@ function Home() {
         <main className={styles.page_root}>
             <h1>Home</h1>
             <h2>You are logged in</h2>
-            <span>User: {user?.email}</span>
         </main>
     )
 }

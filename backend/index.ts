@@ -39,7 +39,7 @@ const startServer = async () => {
                         console.log('authResult: ', authResult);
                         if(authResult.isSuccess) {
                             return new Response(JSON.stringify({
-                                message: "OK",
+                                message: "OK"
                             }), { status: 200, headers: CORS_HEADERS.headers });
                         } else {
                             return new Response(authResult.responseBody.message, { status: authResult.responseBody.status, headers: CORS_HEADERS.headers });
