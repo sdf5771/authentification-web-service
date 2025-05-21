@@ -21,7 +21,7 @@ function validateAccessToken(req: Request) {
     }
 
     if(!accessToken) {
-        resultInit.responseBody.message = "Unauthorized";
+        resultInit.responseBody.message = "AccessToken is required";
         resultInit.responseBody.status = 401;
         return resultInit;
     }
@@ -29,13 +29,13 @@ function validateAccessToken(req: Request) {
     const validationTokenResult = verifyAccessToken(accessToken);
     
     if(validationTokenResult.error && validationTokenResult.error.message === "jwt expired") {
-        resultInit.responseBody.message = "Token expired";
+        resultInit.responseBody.message = "AccessToken expired";
         resultInit.responseBody.status = 401;
         return resultInit;
     }
 
     if(!validationTokenResult.isValid) {
-        resultInit.responseBody.message = "Unauthorized";
+        resultInit.responseBody.message = "AccessToken is invalid";
         resultInit.responseBody.status = 401;
         return resultInit;
     }
