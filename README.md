@@ -121,4 +121,45 @@ npm run dev
 VITE_API_URL=http://localhost:4000
 ```
 
+
+## 프론트엔드 Route 정보
+
+- Home
+  - URL : `http://localhost:5173/`
+  - 인증 완료 시 접근 가능
+  - 인증 정보 없을 시 `login` 페이지로 redirect
+- Login
+  - URL : `http://localhost:5173/login`
+  - 로그인
+- SignUp
+  - URL : `http://localhost:5173/signup`
+  - 사용자 정보 생성
+
+
+## API 엔드포인트 정보
+
+### 인증 관련
+
+* `POST` /api/v1/signup: 새 사용자 등록
+* `POST` /api/v1/signin: 사용자 로그인 및 토큰 발급
+* `POST` /api/v1/refresh-token: 액세스 토큰 갱신
+* `GET` /api/v1/healthcheck: 서버 상태 및 인증 상태 확인
+
+## 아키텍처
+
+다음과 같은 구조로 설계되었습니다:
+
+1. 인증 흐름:
+
+* 사용자 로그인 → 액세스 토큰 + 리프레시 토큰 발급 및 In Memory DB 세션 생성
+* 액세스 토큰 만료 → 리프레시 토큰으로 새 액세스 토큰 요청 후 인증 상황 유지, 세션에 엑세스 토큰 내용 업데이트
+* 리프레시 토큰 만료 → 사용자 재로그인 필요, 세션 만료되어 In Memory DB 상에서 제거됨
+
+2. 보안:
+
+* 비밀번호 해싱 - "bcrypt": "^6.0.0"
+* 토큰 기반 인증 - "jsonwebtoken": "^9.0.2"
+* CORS 보안 설정 - Vite 에서 default origin `http://localhost:5173` 을 기준으로 허용되어 있음.
+* HTTP-Only 쿠키를 통한 토큰 저장
+
 ---
