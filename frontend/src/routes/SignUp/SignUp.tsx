@@ -1,10 +1,11 @@
 import styles from './SignUp.module.css';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
 const API_URL = import.meta.env.VITE_API_URL;
 
 function SignUp() {
+    const navigate = useNavigate();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -26,8 +27,19 @@ function SignUp() {
             });
             const data = await response.json();
             console.log(data);
+            if(data.error) {
+                alert(data.error);
+                setName('');
+                setEmail('');
+                setPassword('');
+                setPasswordConfirm('');
+            } else {
+                alert(data.message);
+                navigate('/login');
+            }
         } catch (error) {
             console.error(error);
+            console.dir(error);
             if(error instanceof Error) {
                 alert(error.message);
             } else {
