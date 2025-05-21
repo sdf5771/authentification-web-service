@@ -16,15 +16,24 @@ function SignUp() {
             alert('Password and Password Confirm are not the same');
             return;
         }
-        const response = await fetch(`${API_URL}/api/v1/signup`, {
-            method: 'POST',
-            body: JSON.stringify({ name, email, password }),
-            headers: {
-                'Content-Type': 'application/json'
+        try {
+            const response = await fetch(`${API_URL}/api/v1/signup`, {
+                method: 'POST',
+                body: JSON.stringify({ name, email, password }),
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            const data = await response.json();
+            console.log(data);
+        } catch (error) {
+            console.error(error);
+            if(error instanceof Error) {
+                alert(error.message);
+            } else {
+                alert('Sign up failed');
             }
-        });
-        const data = await response.json();
-        console.log(data);
+        }
     }
 
     return (

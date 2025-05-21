@@ -13,31 +13,176 @@ const BACKEND_API_SERVER_LOG_NAME = chalk.blue("[Bun API Server]:");
 
 console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Try Serving API Server..."));
 
+const CORS_HEADERS = {
+    headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Credentials": "true"
+    },
+};
+
 const startServer = async () => {
     try {
         await connectDB();
 
         serve({
             port: 4000,
+            // fetch(req) {
+            //     const res = new Response();
+            //     res.headers.set('Access-Control-Allow-Origin', '*');
+            //     res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+            //     res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+            //     res.headers.set('Access-Control-Allow-Credentials', 'true');
+            //     return res;
+            // },
             routes: {
                 "/api/v1/healthcheck": (req, res) => {
-                    console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Healthcheck passed"));
-                    const authResult = validateAccessToken(req);
-                    if(authResult.isSuccess) {
-                        return new Response("OK", { status: 200 });
-                    } else {
-                        return new Response(authResult.responseBody.message, { status: authResult.responseBody.status });
+                    if(req.method === "OPTIONS") {
+                        return new Response(null, { status: 204, headers: CORS_HEADERS.headers });
                     }
-                },
-                "/api/v1/signup": async (req, res) => {
-                    if(req.method !== "POST") {
+                    if(req.method === "GET"){
+                        console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Healthcheck passed"));
+                        const authResult = validateAccessToken(req);
+                        if(authResult.isSuccess) {
+                            return new Response("OK", { status: 200, headers: CORS_HEADERS.headers });
+                        } else {
+                            return new Response(authResult.responseBody.message, { status: authResult.responseBody.status, headers: CORS_HEADERS.headers });
+                        }
+                    } else {
                         const responseBody = JSON.stringify({
                             error: "Method not allowed"
                         });
                         const responseInit = {
                             status: 405,
                             headers: {
-                                "Content-Type": "application/json"
+                                "Content-Type": "application/json",
+                                ...CORS_HEADERS.headers
+                            }
+                        };
+                        return new Response(responseBody, responseInit);
+                    }
+                },
+                "/api/v1/signup": async (req, res) => {
+                    if(req.method === "OPTIONS") {
+                        return new Response(null, { status: 204, headers: CORS_HEADERS.headers });
+                    }
+
+                    if(req.method === "POST") {
+                        interface ISignupRequest {
+                            email: string;
+                            password: string;
+                            name: string;
+                        }
+            
+                        const { email, password, name } = await req.json() as ISignupRequest;
+    
+                        /**
+                         * Email and password are required
+                         */
+                        if (!email || !password) {
+                            const responseBody = JSON.stringify({
+                                error: "Email and password are required"
+                            });
+                            const responseInit = {
+                                status: 400,
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    ...CORS_HEADERS.headers
+                                }
+                            };
+            
+                            console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Signup failed: Email and password are required"));
+            
+                            return new Response(responseBody, responseInit);
+                        }
+            
+                        /**
+                         * Email must be valid
+                         */
+                        if(!email.includes("@")) {
+                            const responseBody = JSON.stringify({
+                                error: "Invalid email"
+                            });
+                            const responseInit = {
+                                status: 400,
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    ...CORS_HEADERS.headers
+                                }
+                            };
+            
+                            console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Signup failed: Invalid email"));
+            
+                            return new Response(responseBody, responseInit);
+                        }
+            
+                        /**
+                         * Password must be at least 8 characters long
+                         */
+                        if(password.length < 8) {
+                            const responseBody = JSON.stringify({
+                                error: "Password must be at least 8 characters long"
+                            });
+                            const responseInit = {
+                                status: 400,
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    ...CORS_HEADERS.headers
+                                }
+                            };
+            
+                            console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Signup failed: Password must be at least 8 characters long"));
+            
+                            return new Response(responseBody, responseInit);
+                        }
+            
+                        const user = await findUserByEmail(email);
+                        console.log("user ", user);
+            
+                        if(user) {
+                            const responseBody = JSON.stringify({
+                                error: "User already exists"
+                            });
+                            const responseInit = {
+                                status: 400,
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    ...CORS_HEADERS.headers
+                                }
+                            };
+            
+                            console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Signup failed: User already exists"));
+            
+                            return new Response(responseBody, responseInit);
+                        }
+            
+                        const newUser = await createUser({
+                            email,
+                            password: password,
+                            name,
+                        });
+            
+            
+                        console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Signup successful"), newUser);
+                        return new Response(JSON.stringify({
+                            message: "User created successfully"
+                        }), {
+                            status: 201,
+                            headers: {
+                                "Content-Type": "application/json",
+                                ...CORS_HEADERS.headers
+                            }
+                        });
+                    } else {
+                        const responseBody = JSON.stringify({
+                            error: "Method not allowed"
+                        });
+                        const responseInit = {
+                            status: 405,
+                            headers: {
+                                "Content-Type": "application/json",
+                                ...CORS_HEADERS.headers
                             }
                         };
         
@@ -45,110 +190,14 @@ const startServer = async () => {
         
                         return new Response(responseBody, responseInit);
                     }
-        
-                    interface ISignupRequest {
-                        email: string;
-                        password: string;
-                        name: string;
-                    }
-        
-                    const { email, password, name } = await req.json() as ISignupRequest;
-
-                    /**
-                     * Email and password are required
-                     */
-                    if (!email || !password) {
-                        const responseBody = JSON.stringify({
-                            error: "Email and password are required"
-                        });
-                        const responseInit = {
-                            status: 400,
-                            headers: {
-                                "Content-Type": "application/json"
-                            }
-                        };
-        
-                        console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Signup failed: Email and password are required"));
-        
-                        return new Response(responseBody, responseInit);
-                    }
-        
-                    /**
-                     * Email must be valid
-                     */
-                    if(!email.includes("@")) {
-                        const responseBody = JSON.stringify({
-                            error: "Invalid email"
-                        });
-                        const responseInit = {
-                            status: 400,
-                            headers: {
-                                "Content-Type": "application/json"
-                            }
-                        };
-        
-                        console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Signup failed: Invalid email"));
-        
-                        return new Response(responseBody, responseInit);
-                    }
-        
-                    /**
-                     * Password must be at least 8 characters long
-                     */
-                    if(password.length < 8) {
-                        const responseBody = JSON.stringify({
-                            error: "Password must be at least 8 characters long"
-                        });
-                        const responseInit = {
-                            status: 400,
-                            headers: {
-                                "Content-Type": "application/json"
-                            }
-                        };
-        
-                        console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Signup failed: Password must be at least 8 characters long"));
-        
-                        return new Response(responseBody, responseInit);
-                    }
-        
-                    const user = await findUserByEmail(email);
-                    console.log("user ", user);
-        
-                    if(user) {
-                        const responseBody = JSON.stringify({
-                            error: "User already exists"
-                        });
-                        const responseInit = {
-                            status: 400,
-                            headers: {
-                                "Content-Type": "application/json"
-                            }
-                        };
-        
-                        console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Signup failed: User already exists"));
-        
-                        return new Response(responseBody, responseInit);
-                    }
-        
-                    const newUser = await createUser({
-                        email,
-                        password: password,
-                        name,
-                    });
-        
-        
-                    console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Signup successful"), newUser);
-                    return new Response(JSON.stringify({
-                        message: "User created successfully"
-                    }), {
-                        status: 201,
-                        headers: {
-                            "Content-Type": "application/json"
-                        }
-                    });
                 },
                 "/api/v1/signin": async (req, res) => {
-                    console.time("Signin Logic Time");
+                    if(req.method === "OPTIONS") {
+                        return new Response(null, { status: 204, headers: CORS_HEADERS.headers });
+                    }
+
+                    if(req.method === "POST") {
+                        console.time("Signin Logic Time");
                     interface ISigninRequest {
                         email: string;
                         password: string;
@@ -166,7 +215,8 @@ const startServer = async () => {
                         const responseInit = {
                             status: 400,
                             headers: {
-                                "Content-Type": "application/json"
+                                "Content-Type": "application/json",
+                                ...CORS_HEADERS.headers
                             }
                         };
         
@@ -187,7 +237,8 @@ const startServer = async () => {
                         const responseInit = {
                             status: 400,
                             headers: {
-                                "Content-Type": "application/json"
+                                "Content-Type": "application/json",
+                                ...CORS_HEADERS.headers
                             }
                         };
         
@@ -208,7 +259,8 @@ const startServer = async () => {
                         const responseInit = {
                             status: 400,
                             headers: {
-                                "Content-Type": "application/json"
+                                "Content-Type": "application/json",
+                                ...CORS_HEADERS.headers
                             }
                         };
         
@@ -305,28 +357,31 @@ const startServer = async () => {
                         status: 200,
                         headers: {
                             "Content-Type": "application/json",
-                            "Set-Cookie": refreshTokenCookie
+                            "Set-Cookie": refreshTokenCookie,
+                            ...CORS_HEADERS.headers
                         }
                     });
-                },
-                "/api/v1/refresh-token": async (req, res) => {
-                    if(req.method !== "POST") {
+                    } else {
                         const responseBody = JSON.stringify({
                             error: "Method not allowed"
                         });
                         const responseInit = {
                             status: 405,
                             headers: {
-                                "Content-Type": "application/json"
+                                "Content-Type": "application/json",
+                                ...CORS_HEADERS.headers
                             }
                         };
-                        
-                        console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Refresh token failed: Method not allowed"));
-
                         return new Response(responseBody, responseInit);
                     }
+                },
+                "/api/v1/refresh-token": async (req, res) => {
+                    if(req.method === "OPTIONS") {
+                        return new Response(null, { status: 204, headers: CORS_HEADERS.headers });
+                    }
 
-                    const refreshToken = req.cookies.get("refreshToken");
+                    if(req.method === "POST") {
+                        const refreshToken = req.cookies.get("refreshToken");
 
                     if(!refreshToken) {
                         const responseBody = JSON.stringify({
@@ -336,7 +391,8 @@ const startServer = async () => {
                         const responseInit = {
                             status: 400,
                             headers: {
-                                "Content-Type": "application/json"
+                                "Content-Type": "application/json",
+                                ...CORS_HEADERS.headers
                             }
                         };
                         return new Response(responseBody, responseInit);
@@ -351,7 +407,8 @@ const startServer = async () => {
                         const responseInit = {
                             status: 400,
                             headers: {
-                                "Content-Type": "application/json"
+                                "Content-Type": "application/json",
+                                ...CORS_HEADERS.headers
                             }
                         };
                         return new Response(responseBody, responseInit);
@@ -422,11 +479,12 @@ const startServer = async () => {
                         }), {
                             status: 500,
                             headers: {
-                                "Content-Type": "application/json"
+                                "Content-Type": "application/json",
+                                ...CORS_HEADERS.headers
                             }
                         });
                     }
-                    
+
                     return new Response(JSON.stringify({
                         message: "Refresh token successful",
                         accessToken,
@@ -434,9 +492,26 @@ const startServer = async () => {
                     }), {
                         status: 200,
                         headers: {
-                            "Content-Type": "application/json"
+                            "Content-Type": "application/json",
+                            ...CORS_HEADERS.headers
                         }
                     });
+                    } else {
+                        const responseBody = JSON.stringify({
+                            error: "Method not allowed"
+                        });
+                        const responseInit = {
+                            status: 405,
+                            headers: {
+                                "Content-Type": "application/json",
+                                ...CORS_HEADERS.headers
+                            }
+                        };
+                        
+                        console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Refresh token failed: Method not allowed"));
+
+                        return new Response(responseBody, responseInit);
+                    }
                 },
             }
         });
