@@ -36,8 +36,11 @@ const startServer = async () => {
                     if(req.method === "GET"){
                         console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Healthcheck passed"));
                         const authResult = validateAccessToken(req);
+                        console.log('authResult: ', authResult);
                         if(authResult.isSuccess) {
-                            return new Response("OK", { status: 200, headers: CORS_HEADERS.headers });
+                            return new Response(JSON.stringify({
+                                message: "OK",
+                            }), { status: 200, headers: CORS_HEADERS.headers });
                         } else {
                             return new Response(authResult.responseBody.message, { status: authResult.responseBody.status, headers: CORS_HEADERS.headers });
                         }

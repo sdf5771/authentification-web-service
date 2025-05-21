@@ -31,6 +31,7 @@ function Login() {
                     name: data.user.name,
                 });
                 setAccessToken(data.accessToken);
+                localStorage.setItem('accessToken', data.accessToken);
                 navigate('/');
             } else {
                 throw new Error('Login failed');
