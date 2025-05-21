@@ -12,6 +12,10 @@ function Login() {
     const handleLogin = async () => {
         const response = await fetch(`${API_URL}/api/v1/signin`, {
             method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+            },
             body: JSON.stringify({ email, password }),
         });
 

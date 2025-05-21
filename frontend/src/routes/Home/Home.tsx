@@ -8,28 +8,38 @@ function Home() {
     const navigate = useNavigate();
     const { user, accessToken, setUser, setAccessToken, clearAuth } = useAuthStore();
 
-    const fetchingHealthcheck = async () => {
-        const response = await fetch(`${API_URL}/api/v1/healthcheck`, {
-            headers: {
-                Authorization: `Bearer ${accessToken}`,
-            },
+    const fetchingRefreshToken = async () => {
+        const response = await fetch(`${API_URL}/api/v1/refresh-token`, {
+            method: 'POST',
+            credentials: 'include'
         });
+        console.log(response);
         if(response.status === 200) {
             const data = await response.json();
             setUser(data.user);
+            console.log('data.accessToken: ', data.accessToken);
             setAccessToken(data.accessToken);
         } else {
-            clearAuth();
             navigate('/login');
         }
     }
 
-    useEffect(() => {
-        if(!user || !accessToken) {
-            navigate('/login');
-            return
+    const fetchingHealthcheck = async () => {
+        const response = await fetch(`${API_URL}/api/v1/healthcheck`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+            },
+        });
+        console.log(response);
+        if(response.status !== 200) {
+            clearAuth();
+            await fetchingRefreshToken();
         }
+    }
 
+    useEffect(() => {
         fetchingHealthcheck();
 
     }, [user, accessToken]);

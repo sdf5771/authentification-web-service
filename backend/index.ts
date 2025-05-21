@@ -15,10 +15,10 @@ console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Try Serving API Server..."
 
 const CORS_HEADERS = {
     headers: {
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": "http://localhost:5173",
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        "Access-Control-Allow-Credentials": "true"
+        "Access-Control-Allow-Credentials": "true",
     },
 };
 
@@ -185,7 +185,9 @@ const startServer = async () => {
                 },
                 "/api/v1/signin": async (req, res) => {
                     if(req.method === "OPTIONS") {
-                        return new Response(null, { status: 204, headers: CORS_HEADERS.headers });
+                        return new Response(null, { status: 204, headers: {
+                            ...CORS_HEADERS.headers
+                        } });
                     }
 
                     if(req.method === "POST") {
@@ -318,7 +320,7 @@ const startServer = async () => {
                         accessToken,
                         accessTokenExpiresAt: addTimeToDate(new Date(), JWT_EXPIRES_IN),
                     }
-                    await saveSession(sessionId, sessionData, addTimeToSeconds(JWT_EXPIRES_IN));
+                    await saveSession(sessionId, sessionData, addTimeToSeconds(JWT_REFRESH_TOKEN_EXPIRES_IN));
                     const newSession = await getSession(sessionId);
                     if(!newSession) {
                         console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Signin failed: Failed to save session"));
@@ -425,57 +427,70 @@ const startServer = async () => {
                     });
 
                     /**
-                     * Check if session is alived and delete before session
+                     * Check if session is alived and update current session
                      */
                     const sessionId = user.redisSession?.id;
-                    let isAlivedSession = false;
                     if(sessionId) {
                         const session = await getSession(sessionId);
                         if(!session) {
-                            isAlivedSession = false;
+                            /**
+                             * Save new session
+                             */
+                            const newSessionId = generateSessionId();
+                            
+                            try {
+                                const sessionData: ISessionData = {
+                                    sessionId: newSessionId,
+                                    email: user.email,
+                                    name: user.name,
+                                    roles: user.roles,
+                                    accessToken,
+                                    accessTokenExpiresAt: addTimeToDate(new Date(), JWT_EXPIRES_IN),
+                                }
+                                await saveSession(newSessionId, sessionData, addTimeToSeconds(JWT_REFRESH_TOKEN_EXPIRES_IN));
+                                await updateUserRedisSession(user.email, newSessionId);
+                                console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Refresh token successful: Session saved"));
+                            } catch (error) {
+                                console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Refresh token failed: Failed to save session"));
+                                return new Response(JSON.stringify({
+                                    error: "Failed to save session"
+                                }), {
+                                    status: 500,
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                        ...CORS_HEADERS.headers
+                                    }
+                                });
+                            }
                         } else {
-                            isAlivedSession = true;
+                            /**
+                             * Update Current Session
+                             */
+                            try {
+                                const sessionData: ISessionData = {
+                                    sessionId: sessionId,
+                                    email: user.email,
+                                    name: user.name,
+                                    roles: user.roles,
+                                    accessToken,
+                                    accessTokenExpiresAt: addTimeToDate(new Date(), JWT_EXPIRES_IN),
+                                }
+                                await saveSession(sessionId, sessionData, addTimeToSeconds(JWT_REFRESH_TOKEN_EXPIRES_IN));
+                                console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Refresh token successful: Session saved"));
+                            } catch (error) {
+                                console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Refresh token failed: Failed to save session"));
+                                return new Response(JSON.stringify({
+                                    error: "Failed to save session"
+                                }), {
+                                    status: 500,
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                        ...CORS_HEADERS.headers
+                                    }
+                                });
+                            }
                         }
                     } 
-
-                    /**
-                     * Save Session
-                     */
-                    const newSessionId = generateSessionId();
-                    
-                    /**
-                     * Delete session if it is alived
-                     */
-                    if(isAlivedSession && sessionId) {
-                        await deleteSession(sessionId);
-                    }
-
-                    /**
-                     * Save new session
-                     */
-                    try {
-                        const sessionData: ISessionData = {
-                            sessionId: newSessionId,
-                            email: user.email,
-                            name: user.name,
-                            roles: user.roles,
-                            accessToken,
-                            accessTokenExpiresAt: addTimeToDate(new Date(), JWT_EXPIRES_IN),
-                        }
-                        await saveSession(newSessionId, sessionData, addTimeToSeconds(JWT_EXPIRES_IN));
-                        console.log(BACKEND_API_SERVER_LOG_NAME, chalk.green("Refresh token successful: Session saved"));
-                    } catch (error) {
-                        console.log(BACKEND_API_SERVER_LOG_NAME, chalk.red("Refresh token failed: Failed to save session"));
-                        return new Response(JSON.stringify({
-                            error: "Failed to save session"
-                        }), {
-                            status: 500,
-                            headers: {
-                                "Content-Type": "application/json",
-                                ...CORS_HEADERS.headers
-                            }
-                        });
-                    }
 
                     return new Response(JSON.stringify({
                         message: "Refresh token successful",

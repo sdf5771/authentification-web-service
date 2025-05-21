@@ -19,7 +19,7 @@ function validateAccessToken(req: Request) {
             data: null,
         }
     }
-
+    console.log('accessToken: ', accessToken);
     if(!accessToken) {
         resultInit.responseBody.message = "AccessToken is required";
         resultInit.responseBody.status = 401;
@@ -27,7 +27,6 @@ function validateAccessToken(req: Request) {
     }
 
     const validationTokenResult = verifyAccessToken(accessToken);
-    
     if(validationTokenResult.error && validationTokenResult.error.message === "jwt expired") {
         resultInit.responseBody.message = "AccessToken expired";
         resultInit.responseBody.status = 401;
